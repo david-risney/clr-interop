@@ -382,7 +382,7 @@ namespace TypeLibTypes.Interop
         new void GetIDsOfNames([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPWStr, SizeParamIndex = 1), In] String[] rgszNames, int cNames, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1), Out] int[] pMemId);
         new void Invoke([MarshalAs(UnmanagedType.IUnknown)] Object pvInstance, int memid, Int16 wFlags, ref DISPPARAMS pDispParams, IntPtr pVarResult, IntPtr pExcepInfo, out int puArgErr);
         // In order to be able to pass NULL to GetDocumentation, use IntPtr instead of out <type>
-        new void GetDocumentation(int index, out String strName, IntPtr pstrDocString, IntPtr pdwHelpContext, IntPtr pstrHelpFile);
+        new void GetDocumentation(int index, out String strName, out String strDocString, IntPtr pdwHelpContext, IntPtr pstrHelpFile);
         new void GetDllEntry(int memid, INVOKEKIND invKind, IntPtr pBstrDllName, IntPtr pBstrName, IntPtr pwOrdinal);
         new void GetRefTypeInfo(int hRef, out ITypeInfo ppTI);
         new void AddressOfMember(int memid, INVOKEKIND invKind, out IntPtr ppv);

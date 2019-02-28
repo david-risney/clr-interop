@@ -126,7 +126,6 @@ namespace TlbDump
 
                         case ParsingMode.Global:
                             {
-                                bool found = false;
                                 foreach (var globalPart in globalParts_)
                                 {
                                     var match = globalPart.testRegex_.Match(line.Trim());
@@ -134,7 +133,6 @@ namespace TlbDump
                                     {
                                         current.Add("name", match.Groups[1].Value);
                                         current.Add("kind", globalPart.kind_);
-                                        found = true;
                                         if (stack.Count() > 0)
                                         {
                                             stack[stack.Count() - 1].children_.Add(current);
