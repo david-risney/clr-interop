@@ -110,7 +110,11 @@ namespace TypeLibTypes.Interop
             // try to load up the corresponding DLL and look for GetDocumentation entry point and ask it for documentation, which
             // will probably fail. As a result, GetDocumentation will fail.
             // To avoid this issue, always pass NULL for the last 3 arguments which we don't need
-            m_typeInfo.GetDocumentation(index, out strName, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            m_typeInfo.GetDocumentation(index, out strName, out _, IntPtr.Zero, IntPtr.Zero);
+        }
+        public void GetDocumentation(int index, out String strName, out String strDoc)
+        {
+            m_typeInfo.GetDocumentation(index, out strName, out strDoc, IntPtr.Zero, IntPtr.Zero);
         }
         public String GetDocumentation(int index)
         {
