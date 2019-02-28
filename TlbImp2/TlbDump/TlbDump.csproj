@@ -62,10 +62,6 @@
       <Project>{cf522f3f-5a8f-45d3-a4a5-49958eb24638}</Project>
       <Name>TlbImpRuleEngine</Name>
     </ProjectReference>
-    <ProjectReference Include="..\TlbImpRuleFileEditor\TlbImpRuleFileEditor.csproj">
-      <Project>{6CC46CF1-F1EF-4417-9BFD-EBD67907670A}</Project>
-      <Name>TlbImpRuleFileEditor</Name>
-    </ProjectReference>
     <ProjectReference Include="..\typelibTypes.interop\TypeLibTypes.Interop.csproj">
       <Project>{cfc5a366-641a-4ead-818a-a792123e8a21}</Project>
       <Name>TypeLibTypes.Interop</Name>

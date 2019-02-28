@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using TlbImpRuleFileEditor;
 using TypeLibTypes.Interop;
 
 namespace TlbDump
@@ -69,5 +69,22 @@ namespace TlbDump
             Console.WriteLine(generated);
             Console.WriteLine();
         }
+    }
+
+    [Flags]
+    public enum REGKIND
+    {
+        REGKIND_DEFAULT = 0,
+        REGKIND_REGISTER = 1,
+        REGKIND_NONE = 2,
+        REGKIND_LOAD_TLB_AS_32BIT = 0x20,
+        REGKIND_LOAD_TLB_AS_64BIT = 0x40,
+    }
+
+    public class APIHelper
+    {
+        [DllImport("oleaut32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+        public static extern void LoadTypeLibEx(String strTypeLibName,
+            REGKIND regKind, out System.Runtime.InteropServices.ComTypes.ITypeLib TypeLib);
     }
 }
