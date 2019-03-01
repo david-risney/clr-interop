@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TlbImpRuleEngine;
 using TypeLibTypes.Interop;
@@ -10,11 +11,93 @@ namespace TlbDump
 {
     public class TlbToNode
     {
+        private static void MergeGetterAndSetterProperties(Node node, Node parent = null)
+        {
+            if (parent != null)
+            {
+                bool isSetter = node.properties_.ContainsKey("setterSignature");
+                List<Node> matchingSiblings = parent.FindAllChildren(new string[] { node.properties_["name"] });
+                foreach (var sibling in matchingSiblings)
+                {
+                    if (sibling != node)
+                    {
+                        sibling.Merge(node);
+                        node.Merge(sibling);
+                    }
+                }
+
+                if (isSetter)
+                {
+                    parent.children_.Remove(node);
+                }
+            }
+            List<Node> children = new List<Node>(node.children_);
+            foreach (var child in children)
+            {
+                MergeGetterAndSetterProperties(child, node);
+            }
+        }
+
+        public static void LinkifyTypesInDescriptionsAndSignatures(Node node)
+        {
+            HashSet<string> typeNames = new HashSet<string>();
+            GetTypeNames(node, typeNames);
+
+            LinkifyTypesInDescriptionsAndSignatures(node, typeNames);
+        }
+
+        private static void GetTypeNames(Node node, HashSet<string> typeNames)
+        {
+            typeNames.Add(node.properties_["name"]);
+
+            foreach (Node child in node.children_)
+            {
+                switch (child.properties_["kind"])
+                {
+                    case "Interface":
+                    case "Enum":
+                    case "Method":
+                    case "Property":
+                    case "Event":
+                        GetTypeNames(child, typeNames);
+                        break;
+                }
+                
+            }
+        }
+
+        private static void LinkifyTypesInDescriptionsAndSignatures(Node node, HashSet<string> typeNames)
+        {
+            foreach (string typeName in typeNames)
+            {
+                string prefix = node.properties_["kind"] == "Interface" ? "Interface " : "";
+                string replacement = "[" + typeName + "](#" + prefix + typeName.ToLower() + ")";
+                LinkifyProperty(node, "description", typeName, replacement);
+                LinkifyProperty(node, "getterSignature", typeName, replacement);
+                LinkifyProperty(node, "setterSignature", typeName, replacement);
+                LinkifyProperty(node, "signature", typeName, replacement);
+            }
+
+            foreach (Node child in node.children_)
+            {
+                LinkifyTypesInDescriptionsAndSignatures(child, typeNames);
+            }
+        }
+
+        private static void LinkifyProperty(Node node, string property, string typeName, string replacement)
+        {
+            if (node.properties_.ContainsKey(property))
+            {
+                Regex regex = new Regex(@"(\W|^)(" + typeName + @")(\W|$)");
+                node.properties_[property] = regex.Replace(node.properties_[property], @"$1" + replacement + @"$3");
+            }
+        }
+
         public static Node GenerateLibrary(TypeLib library)
         {
             string name;
             library.GetDocumentation(-1, out name, out _, out _, out _);
-            Node node = new Node("Library", name, null);
+            Node node = new Node("Library", name);
 
             int nCount = library.GetTypeInfoCount();
             for (int n = 0; n < nCount; ++n)
@@ -58,7 +141,7 @@ namespace TlbDump
 
                                     String childName;
                                     type.GetDocumentation(TYPEATTR.MEMBER_ID_NIL, out childName);
-                                    Node childNode = new Node(typeInfoMatchTarget.Type, childName, null);
+                                    Node childNode = new Node(typeInfoMatchTarget.Type, childName);
                                     node.children_.Add(childNode);
                                     childNode.Add("guid", typeInfoMatchTarget.GUID.ToString());
 
@@ -71,6 +154,8 @@ namespace TlbDump
                 }
             }
 
+            MergeGetterAndSetterProperties(node);
+            LinkifyTypesInDescriptionsAndSignatures(node);
             return node;
         }
 
@@ -88,8 +173,9 @@ namespace TlbDump
                     string name;
 
                     parentTypeInfo.GetDocumentation(variableInfo.VarDesc.memid, out name);
-                    Node child = new Node("Field", name, null);
+                    Node child = new Node("Field", name);
                     child.Add("type", variableInfo.Type);
+                    child.Add("value", "" + variableInfo.Index); // Not sure this is correct.
 
                     fields.Add(child);
                 }
@@ -97,6 +183,14 @@ namespace TlbDump
 
             return fields;
         }
+
+        private enum MethodKind
+        {
+            Getter,
+            Setter,
+            Method,
+            Event,
+        };
 
         private static List<Node> GenerateMethods(TypeInfo parentTypeInfo)
         {
@@ -116,16 +210,35 @@ namespace TlbDump
                     string name;
                     parentTypeInfo.GetDocumentation(functionInfo.FuncDesc.memid, out name);
 
+                    bool isGetter = functionInfo.FuncDesc.IsPropertyGet;
+                    bool isSetter = (functionInfo.FuncDesc.IsPropertyPut || functionInfo.FuncDesc.IsPropertyPutRef);
+                    bool isProperty = isGetter || isSetter;
+                    bool isEvent = name.StartsWith("Set") && name.EndsWith("EventHandler");
+                    string methodKindName = isProperty ? "Property" : (isEvent ? "Event" : "Method");
+
+                    Node node = new Node(methodKindName, name);
+                    node.children_.AddRange(GenerateParameters(parentTypeInfo, i));
+
                     if (functionInfo.FuncDesc.IsPropertyGet)
                     {
-                        name += " (getter)";
+                        node.Add("getterSignature", GenerateSignatureForNode(node, MethodKind.Getter));
                     }
                     else if (functionInfo.FuncDesc.IsPropertyPut || functionInfo.FuncDesc.IsPropertyPutRef)
                     {
-                        name += " (setter)";
+                        node.Add("setterSignature", GenerateSignatureForNode(node, MethodKind.Setter));
                     }
-                    Node node = new Node("Method", name, null);
-                    node.children_.AddRange(GenerateParameters(parentTypeInfo, i));
+                    else
+                    {
+                        node.Add("signature", GenerateSignatureForNode(node, MethodKind.Method));
+                    }
+
+                    if (isEvent)
+                    {
+                        string eventName = name.Substring("Set".Length, name.Length - "SetEventHandler".Length);
+                        node.Add("eventHandlerType", "IEB" + eventName + "EventHandler");
+                        node.Add("eventArgsType", "IEB" + eventName + "EventArgs");
+                        node.Add("eventName", eventName);
+                    }
 
                     methods.Add(node);
                 }
@@ -133,6 +246,42 @@ namespace TlbDump
 
 
             return methods;
+        }
+
+        private static string GenerateSignatureForNode(Node node, MethodKind methodKind)
+        {
+            var returnNode = node.children_.Where(child => child.properties_["kind"] == "Return").FirstOrDefault();
+            var paramNodes = node.children_.Where(child => child.properties_["kind"] == "Parameter");
+            string prefix = "";
+            if (methodKind == MethodKind.Getter)
+            {
+                prefix = "get_";
+            }
+            else if (methodKind == MethodKind.Setter)
+            {
+                prefix = "put_";
+            }
+
+            return "" +
+                returnNode.properties_["type"] + " " +
+                prefix + node.properties_["name"] + "(" +
+                String.Join(", ", paramNodes.Select(param => param.properties_["type"] + " " + param.properties_["name"])) +
+                ")";
+        }
+
+        private static string NormalizeTypeString(string nonNormalizedType)
+        {
+            string normalizedType = nonNormalizedType;
+            if (normalizedType.IndexOf("]") >= 0)
+            {
+                normalizedType = normalizedType.Substring(normalizedType.IndexOf("]") + 1);
+            }
+            normalizedType = normalizedType.Replace(" *", "*");
+            normalizedType = normalizedType.Replace("LPWSTR", "LPCWSTR");
+            normalizedType = normalizedType.Replace("INT", "BOOL");
+            normalizedType = normalizedType.Replace("tagRECT", "RECT");
+
+            return normalizedType;
         }
 
         private static List<Node> GenerateParameters(TypeInfo interfaceTypeInfo, int funcIndex)
@@ -145,8 +294,8 @@ namespace TlbDump
                 funcIndex, retElemDesc, paramIndex);
             string typeString =
                     (new TlbType2String(interfaceTypeInfo, retElemDesc.tdesc)).GetTypeString();
-            parameters.Add(new Node("Return", retSignatureInfo.Name, null));
-            parameters[parameters.Count - 1].Add("type", retSignatureInfo.NativeSignature);
+            parameters.Add(new Node("Return", retSignatureInfo.Name));
+            parameters[parameters.Count - 1].Add("type", NormalizeTypeString(retSignatureInfo.NativeSignature));
 
             ++paramIndex;
             for (int i = 0; i < funcDesc.cParams; ++i)
@@ -158,8 +307,8 @@ namespace TlbDump
 
                 SignatureInfoMatchTarget paramSignatureInfo = new SignatureInfoMatchTarget(
                     interfaceTypeInfo, funcIndex, paramElemDesc, paramIndex);
-                parameters.Add(new Node("Parameter", paramSignatureInfo.Name, null));
-                parameters[parameters.Count - 1].Add("type", paramSignatureInfo.NativeSignature);
+                parameters.Add(new Node("Parameter", paramSignatureInfo.Name));
+                parameters[parameters.Count - 1].Add("type", NormalizeTypeString(paramSignatureInfo.NativeSignature));
 
                 ++paramIndex;
             }

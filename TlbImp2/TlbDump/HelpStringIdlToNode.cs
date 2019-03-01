@@ -155,7 +155,7 @@ namespace TlbDump
                         case ParsingMode.HelpString:
                             {
                                 bool terminated = false;
-                                helpString += "\n" + parseHelpString(line, out terminated);
+                                helpString += " " + parseHelpString(line, out terminated);
 
                                 if (terminated)
                                 {

@@ -24,45 +24,91 @@ namespace TlbDump
 
             templates.Add("Library",
 @"# {name}
-{description?}
+
+{description}
 
 {children where kind = Interface use Interface}
+
 {children where kind = Enum use Enum}");
 
             templates.Add("Interface",
 @"## Interface {name}
-{description?}
-{children where kind = Method use Method}
-{children where kind = Field use Field}
+
+{description}
+
+{if children where kind = Event use EventHeader}
+{if children where kind = Method use MethodHeader}
+{if children where kind = Property use PropertyHeader}
 ");
+
+            templates.Add("EventHeader",
+@"### Events
+
+{children where kind = Event use Event}
+");
+
+            templates.Add("MethodHeader",
+@"### Methods
+
+{children where kind = Method use Method}
+");
+
+            templates.Add("PropertyHeader",
+@"### Properties
+
+{children where kind = Property use Property}
+");
+
+            templates.Add("Event",
+@"#### {eventName}
+
+{description}
+
+`{signature}`
+Event args: {eventArgsType}
+Event handler: {eventHandlerType}
+");
+
+            templates.Add("Method",
+@"#### {name}
+
+{description}
+
+`{signature}`
+");
+
+            templates.Add("Property",
+@"#### {name}
+
+{description}
+
+`{getterSignature}`
+
+{if setterSignature use SetterHeader}
+");
+            templates.Add("SetterHeader",
+@"`{setterSignature}`");
+
             templates.Add("Enum",
 @"## Enum {name}
-{description?}
+
+{description}
+
+| Field | Value | Description |
+| ----- | ----- | ----------- |
 {children where kind = Field use Field}
+
 ");
+
             templates.Add("Field",
-@"### Enum Value {name}
-{description?}
-");
-            templates.Add("Method",
-@"### Method {name}
-{description?}
-#### Parameters
-{children where kind = Parameter use Parameter}
-#### Return value
-{children where kind = Return use Return}
-");
-            templates.Add("Parameter",
-@"* {type} {name} {description?}
-");
-            templates.Add("Return",
-@"* {type} {description?}
-");
+@"| {name} | {value} | {description} |");
+
             TypeLib tlb = new TypeLib((ITypeLib)TypeLib);
             Node library = TlbToNode.GenerateLibrary(tlb);
             Node helpStringLibrary = HelpStringIdlToNode.IdlToNode(idlFilePath);
             Node mergedTree = library.Clone();
             mergedTree.Merge(helpStringLibrary);
+            // TlbToNode.LinkifyTypesInDescriptionsAndSignatures(mergedTree);
             Generator generator = new Generator(templates);
 
             var generated = generator.Fill(mergedTree, "Library");

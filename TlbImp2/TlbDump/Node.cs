@@ -15,14 +15,10 @@ namespace TlbDump
         public void Add(string name, string value) { properties_.Add(name, value); }
 
         public Node() { }
-        public Node(string kind, string name, string description)
+        public Node(string kind, string name)
         {
             Add("kind", kind);
             Add("name", name);
-            if (description != null)
-            {
-                Add("description", description);
-            }
         }
 
         public Node Clone()
