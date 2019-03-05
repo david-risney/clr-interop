@@ -155,7 +155,7 @@ namespace TlbDump
             }
 
             MergeGetterAndSetterProperties(node);
-            LinkifyTypesInDescriptionsAndSignatures(node);
+            // LinkifyTypesInDescriptionsAndSignatures(node);
             return node;
         }
 
