@@ -100,7 +100,6 @@ namespace TlbDump
             }
 
             MergeGetterAndSetterProperties(node);
-            // LinkifyTypesInDescriptionsAndSignatures(node);
             return node;
         }
 
@@ -185,12 +184,30 @@ namespace TlbDump
                         node.Add("eventName", eventName);
                     }
 
+                    string asyncMethodCompletionInterfaceName = GetAsyncMethodCompletionInterfaceName(node);
+                    if (asyncMethodCompletionInterfaceName != null)
+                    {
+                        node.Add("asyncInterface", asyncMethodCompletionInterfaceName);
+                    }
+
                     methods.Add(node);
                 }
             }
 
 
             return methods;
+        }
+
+        private static string GetAsyncMethodCompletionInterfaceName(Node method)
+        {
+            var parameters = method.children_.Where(child => child.properties_["kind"] == "Parameter");
+            Node lastParam = parameters.LastOrDefault();
+
+            if (lastParam != null && lastParam.properties_["type"] == "IEB" + method.properties_["name"] + "CompletedHandler*")
+            {
+                return lastParam.properties_["type"].Substring(0, lastParam.properties_["type"].Length - 1);
+            }
+            return null;
         }
 
         private static string GenerateSignatureForNode(Node node, MethodKind methodKind)

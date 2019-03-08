@@ -68,7 +68,9 @@ namespace TlbDump
 
 {description}
 
-`{signature}`
+```
+{signature}
+```
 
 * Event args: {eventArgsType}
 * Event handler: {eventHandlerType}
@@ -79,7 +81,15 @@ namespace TlbDump
 
 {description}
 
-`{signature}`
+```
+{signature}
+```
+
+{if asyncInterface use asyncMethodHeader}
+");
+
+            templates.Add("asyncMethodHeader",
+@" * Async completion interface: {asyncInterface}
 ");
 
             templates.Add("Property",
@@ -87,12 +97,16 @@ namespace TlbDump
 
 {description}
 
-`{getterSignature}`
+```
+{getterSignature}
+```
 
 {if setterSignature use SetterHeader}
 ");
             templates.Add("SetterHeader",
-@"`{setterSignature}`");
+@"```
+{setterSignature}
+```");
 
             templates.Add("Enum",
 @"# Enum {name}
@@ -114,13 +128,24 @@ namespace TlbDump
             Node mergedTree = library.Clone();
             mergedTree.Merge(helpStringLibrary);
 
+            mergedTree.properties_["description"] += "\n";
+            foreach (var child in mergedTree.children_)
+            {
+                mergedTree.properties_["description"] += " * " + child.properties_["name"] + "\n";
+            }
+
+            AutoTypeLinker linker = new AutoTypeLinker(mergedTree);
+            linker.Linkify(mergedTree);
+
             Generator generator = new Generator(templates);
 
-            WriteMdToHtml(generator.Fill(mergedTree, "Library"), "index");
+            string libraryMarkDown = generator.Fill(mergedTree, "Library");
+            WriteMdToHtml(libraryMarkDown, "index");
             foreach (var child in mergedTree.children_)
             {
                 WriteMdToHtml(generator.Fill(child, child.properties_["kind"]), child.properties_["name"].ToLower());
             }
+            File.WriteAllText(outputPath_ + "\\style.css", MarkDownToHtmlConverter.GetStyleSheet());
         }
 
         private void WriteMdToHtml(string mdContent, string nameWithoutExtension) {
