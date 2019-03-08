@@ -124,7 +124,8 @@ namespace TlbDump
         }
 
         private void WriteMdToHtml(string mdContent, string nameWithoutExtension) {
-            File.WriteAllLines(outputPath_ + "\\" + nameWithoutExtension + ".html", CommonMark.CommonMarkConverter.Convert(mdContent).Split('\n'));
+            
+            File.WriteAllLines(outputPath_ + "\\" + nameWithoutExtension + ".html", MarkDownToHtmlConverter.Convert(mdContent).Split('\n'));
         }
     }
 
