@@ -100,7 +100,7 @@ namespace TlbDump
                     helpString = parseHelpString(helpString, out terminated);
                     if (terminated)
                     {
-                        current.Add("description", helpString);
+                        current.Set("description", helpString);
                     }
                     else
                     {
@@ -116,9 +116,9 @@ namespace TlbDump
                                 var enumName = line.Trim(new char[] { ' ', ',' });
                                 if (enumName.Length > 0)
                                 {
-                                    current.Add("name", enumName);
-                                    current.Add("kind", "Field");
-                                    stack[stack.Count() - 1].children_.Add(current);
+                                    current.Set("name", enumName);
+                                    current.Set("kind", "Field");
+                                    stack[stack.Count() - 1].AddChild(current);
                                     current = new Node();
                                 }
                             }
@@ -131,11 +131,11 @@ namespace TlbDump
                                     var match = globalPart.testRegex_.Match(line.Trim());
                                     if (match.Success)
                                     {
-                                        current.Add("name", match.Groups[1].Value);
-                                        current.Add("kind", globalPart.kind_);
+                                        current.Set("name", match.Groups[1].Value);
+                                        current.Set("kind", globalPart.kind_);
                                         if (stack.Count() > 0)
                                         {
-                                            stack[stack.Count() - 1].children_.Add(current);
+                                            stack[stack.Count() - 1].AddChild(current);
                                         }
                                         if (globalPart.parent_)
                                         {
@@ -159,9 +159,9 @@ namespace TlbDump
 
                                 if (terminated)
                                 {
-                                    current.Add("description", helpString);
+                                    current.Set("description", helpString);
                                     parsingMode = ParsingMode.Global;
-                                    if (stack.Count() > 0 && stack[stack.Count() - 1].properties_["kind"] == "Enum")
+                                    if (stack.Count() > 0 && stack[stack.Count() - 1].Kind == "Enum")
                                     {
                                         parsingMode = ParsingMode.Enum;
                                     }

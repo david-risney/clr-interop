@@ -128,11 +128,14 @@ namespace TlbDump
             Node mergedTree = library.Clone();
             mergedTree.Merge(helpStringLibrary);
 
-            mergedTree.properties_["description"] += "\n";
-            foreach (var child in mergedTree.children_)
+            
+            string libraryDescription = mergedTree.Get("description");
+            libraryDescription += "\n";
+            foreach (var child in mergedTree.Children)
             {
-                mergedTree.properties_["description"] += " * " + child.properties_["name"] + "\n";
+                libraryDescription += " * " + child.Name + "\n";
             }
+            mergedTree.Set("description", libraryDescription);
 
             AutoTypeLinker linker = new AutoTypeLinker(mergedTree);
             linker.Linkify(mergedTree);
@@ -141,9 +144,9 @@ namespace TlbDump
 
             string libraryMarkDown = generator.Fill(mergedTree, "Library");
             WriteMdToHtml(libraryMarkDown, "index");
-            foreach (var child in mergedTree.children_)
+            foreach (var child in mergedTree.Children)
             {
-                WriteMdToHtml(generator.Fill(child, child.properties_["kind"]), child.properties_["name"].ToLower());
+                WriteMdToHtml(generator.Fill(child, child.Kind), child.Name.ToLower());
             }
             File.WriteAllText(outputPath_ + "\\style.css", MarkDownToHtmlConverter.GetStyleSheet());
         }

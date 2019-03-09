@@ -20,12 +20,12 @@ namespace TlbDump
         private void Fill(Node node, Node parent)
         {
             bool addChildren = false;
-            switch (node.properties_["kind"])
+            switch (node.Kind)
             {
                 case "Interface":
                 case "Enum":
-                    contextToTypeNameToLink_[""][node.properties_["name"]] = node.properties_["name"].ToLower() + ".html";
-                    contextToTypeNameToLink_[node.properties_["name"]] = new Dictionary<string, string>();
+                    contextToTypeNameToLink_[""][node.Name] = node.Name.ToLower() + ".html";
+                    contextToTypeNameToLink_[node.Name] = new Dictionary<string, string>();
 
                     addChildren = true;
                     break;
@@ -40,14 +40,14 @@ namespace TlbDump
                 case "Field":
                     {
                         List<string> nodeNames = new List<string>();
-                        string parentName = parent.properties_["name"];
-                        nodeNames.Add(node.properties_["name"]);
+                        string parentName = parent.Name;
+                        nodeNames.Add(node.Name);
                         string targetPrefix = parentName.ToLower() + ".html#";
-                        string target = targetPrefix + node.properties_["name"].ToLower();
+                        string target = targetPrefix + node.Name.ToLower();
 
-                        if (node.properties_["kind"] == "Method" || node.properties_["kind"] == "Event")
+                        if (node.Kind == "Method" || node.Kind == "Event")
                         {
-                            string name = node.properties_["name"];
+                            string name = node.Name;
                             if (name.StartsWith("get_") ||
                                 name.StartsWith("put_"))
                             {
@@ -72,7 +72,7 @@ namespace TlbDump
 
             if (addChildren)
             {
-                foreach (Node child in node.children_)
+                foreach (Node child in node.Children)
                 {
                     Fill(child, node);
                 }
@@ -82,12 +82,12 @@ namespace TlbDump
         public void Linkify(Node node, Node parent = null)
         {
             LinkifyInContext(node, parent, "");
-            if (parent != null && contextToTypeNameToLink_.ContainsKey(parent.properties_["name"]))
+            if (parent != null && contextToTypeNameToLink_.ContainsKey(parent.Name))
             {
-                LinkifyInContext(node, parent, parent.properties_["name"]);
+                LinkifyInContext(node, parent, parent.Name);
             }
 
-            foreach (Node child in node.children_)
+            foreach (Node child in node.Children)
             {
                 Linkify(child, node);
             }
@@ -97,7 +97,7 @@ namespace TlbDump
         {
             foreach (KeyValuePair<string, string> entry in contextToTypeNameToLink_[context].OrderByDescending(entry => entry.Key.Length))
             {
-                string prefix = node.properties_["kind"] == "Interface" ? "Interface " : "";
+                string prefix = node.Kind == "Interface" ? "Interface " : "";
                 string replacement = "[" + entry.Key + "](" + entry.Value + ")";
                 LinkifyProperty(node, "description", entry.Key, replacement);
                 //LinkifyProperty(node, "getterSignature", entry.Key, replacement);
@@ -111,10 +111,10 @@ namespace TlbDump
 
         private static void LinkifyProperty(Node node, string property, string typeName, string replacement)
         {
-            if (node.properties_.ContainsKey(property))
+            if (node.Has(property))
             {
                 Regex regex = new Regex(@"(\W|^)(" + typeName + @")(\W|$)");
-                node.properties_[property] = regex.Replace(node.properties_[property], @"$1" + replacement + @"$3");
+                node.Set(property, regex.Replace(node.Get(property), @"$1" + replacement + @"$3"));
             }
         }
 

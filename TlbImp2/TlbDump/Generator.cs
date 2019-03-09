@@ -49,7 +49,7 @@ namespace TlbDump
                 {
                     string targetProperty = conditionalMatch.Groups[1].Value;
                     string templateName = conditionalMatch.Groups[2].Value;
-                    if (node.properties_.ContainsKey(targetProperty))
+                    if (node.Has(targetProperty))
                     {
                         return Fill(node, templateName);
                     }
@@ -60,9 +60,9 @@ namespace TlbDump
                 }
                 else
                 {
-                    if (node.properties_.ContainsKey(matched))
+                    if (node.Has(matched))
                     {
-                        return node.properties_[matched];
+                        return node.Get(matched);
                     }
                     else
                     {
@@ -74,8 +74,8 @@ namespace TlbDump
 
         private string applyChildMatch(Node node, string targetKind, string targetProperty, string targetValue, string templateName, bool runOnSelfNotTarget)
         {
-            var possibleTargets = targetKind == "self" ? new Node[] { node }.ToList() : node.children_;
-            var filteredChildren = possibleTargets.Where(childNode => childNode.properties_[targetProperty] == targetValue);
+            var possibleTargets = targetKind == "self" ? new Node[] { node }.ToList() : node.Children;
+            var filteredChildren = possibleTargets.Where(childNode => childNode.Get(targetProperty) == targetValue);
             if (filteredChildren.Count() > 0 && runOnSelfNotTarget)
             {
                 filteredChildren = new Node[] { node }.ToList();
